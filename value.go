@@ -3,7 +3,9 @@ package athena
 import (
 	"database/sql/driver"
 	"fmt"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/athena"
@@ -56,6 +58,16 @@ func convertValue(athenaType string, rawValue *string) (interface{}, error) {
 		return val, nil
 	case "timestamp":
 		return time.Parse(TimestampLayout, val)
+	case "array":
+		matched, err := regexp.MatchString(`\[.*]`, val)
+		if err != nil {
+			return nil, err
+		}
+		if !matched {
+			return nil, fmt.Errorf("invalid format for array: %s", val)
+		}
+		ret := strings.Split(val[1:len(val)-1], ",")
+		return ret, nil
 	default:
 		panic(fmt.Errorf("unknown type `%s` with value %s", athenaType, val))
 	}
